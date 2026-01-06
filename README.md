@@ -1,5 +1,6 @@
 # World_Population_Dashboard
-Using : Deepseek Ai  &amp; Power Bi 
+![logo](https://github.com/KumarBoste/World_Population_Dashboard/blob/main/Deepseak%20Logo.png)
+
 ![1](https://github.com/KumarBoste/World_Population_Dashboard/blob/main/Deepseek%20Dashboard/Deepseak1.png)
 ![2](https://github.com/KumarBoste/World_Population_Dashboard/blob/main/Deepseek%20Dashboard/Deepseak2.png)
 
