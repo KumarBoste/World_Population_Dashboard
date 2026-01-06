@@ -1,6 +1,7 @@
 # World_Population_Dashboard
 Using : Deepseek Ai  &amp; Power Bi 
 ![1](https://github.com/KumarBoste/World_Population_Dashboard/blob/main/Deepseek%20Dashboard/Deepseak1.png)
+![2](https://github.com/KumarBoste/World_Population_Dashboard/blob/main/Deepseek%20Dashboard/Deepseak2.png)
 
 ## Features of this World Population Dashboard:
 ### Interactive Charts:
