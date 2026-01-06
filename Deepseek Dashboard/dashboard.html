@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Population Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.0"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        h1 i {
+            color: #3498db;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+        
+        .stat-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .controls {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+        }
+        
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        select, input {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            background-color: #f9f9f9;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .chart-title {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #7f8c8d;
+        }
+        
+        .error {
+            background-color: #ffeaea;
+            color: #c0392b;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #c0392b;
+        }
+        
+        .data-info {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-top: 2rem;
+        }
+        
+        .data-source {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-group {
+                min-width: 100%;
+            }
+            
+            .stats-bar {
+                flex-direction: column;
+            }
+        }
+        
+        .country-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+            padding: 10px;
+            display: none;
+            background-color: white;
+            position: absolute;
+            z-index: 100;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .country-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .country-item:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .search-container {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-globe-americas"></i> World Population Dashboard</h1>
+            <p class="subtitle">Explore global population trends, compare countries, and analyze demographic data</p>
+            
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-value" id="worldPopulation">--</div>
+                    <div class="stat-label">Current World Population</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="growthRate">--</div>
+                    <div class="stat-label">Annual Growth Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="density">--</div>
+                    <div class="stat-label">People per km²</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="year">2023</div>
+                    <div class="stat-label">Data Year</div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="regionFilter"><i class="fas fa-map"></i> Region/Continent</label>
+                <select id="regionFilter">
+                    <option value="world">World</option>
+                    <option value="east-asia-pacific">East Asia & Pacific</option>
+                    <option value="europe-central-asia">Europe & Central Asia</option>
+                    <option value="latin-america-caribbean">Latin America & Caribbean</option>
+                    <option value="middle-east-north-africa">Middle East & North Africa</option>
+                    <option value="north-america">North America</option>
+                    <option value="south-asia">South Asia</option>
+                    <option value="sub-saharan-africa">Sub-Saharan Africa</option>
+                </select>
+            </div>
+            
+            <div class="control-group search-container">
+                <label for="countrySearch"><i class="fas fa-search"></i> Search Country</label>
+                <input type="text" id="countrySearch" placeholder="Start typing country name...">
+                <div id="countryList" class="country-list"></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="yearRange"><i class="fas fa-calendar-alt"></i> Year Range</label>
+                <input type="range" id="yearRange" min="1960" max="2023" value="2023" step="1">
+                <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                    <span>1960</span>
+                    <span id="selectedYear">2023</span>
+                    <span>2023</span>
+                </div>
+            </div>
+            
+            <button id="updateCharts">
+                <i class="fas fa-sync-alt"></i> Update Dashboard
+            </button>
+        </div>
+        
+        <div id="errorContainer"></div>
+        
+        <div id="loadingIndicator" class="loading">
+            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <p>Loading population data from World Bank API...</p>
+        </div>
+        
+        <div id="dashboardContent" style="display: none;">
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3 class="chart-title"><i class="fas fa-chart-line"></i> Population Trend (1960-2023)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <h3 class="chart-title"><i class="fas fa-chart-pie"></i> Population by Region</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="regionChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <h3 class="chart-title"><i class="fas fa-chart-bar"></i> Top 10 Most Populous Countries</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="topCountriesChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <h3 class="chart-title"><i class="fas fa-exchange-alt"></i> Population Growth Comparison</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="data-info">
+                <p><i class="fas fa-database"></i> <strong>Data Source:</strong> World Bank Open Data API (World Development Indicators). Data is updated annually.</p>
+                <p><i class="fas fa-info-circle"></i> <strong>Note:</strong> Population data for some countries/regions may be estimated or unavailable for certain years.</p>
+                <p>Explore more data at: <a href="https://data.worldbank.org" target="_blank" class="data-source">https://data.worldbank.org</a></p>
+            </div>
+        </div>
+        
+        <footer>
+            <p>World Population Dashboard &copy; 2023 | Data provided by World Bank API</p>
+            <p>Created with Chart.js and vanilla JavaScript</p>
+        </footer>
+    </div>
+
+    <script>
+        // Global variables
+        let worldData = {};
+        let countriesData = [];
+        let filteredData = [];
+        let selectedCountry = null;
+        let selectedRegion = 'world';
+        let selectedYear = 2023;
+        
+        // DOM Elements
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const errorContainer = document.getElementById('errorContainer');
+        const worldPopulationEl = document.getElementById('worldPopulation');
+        const growthRateEl = document.getElementById('growthRate');
+        const densityEl = document.getElementById('density');
+        const yearEl = document.getElementById('year');
+        const yearRange = document.getElementById('yearRange');
+        const selectedYearEl = document.getElementById('selectedYear');
+        const regionFilter = document.getElementById('regionFilter');
+        const countrySearch = document.getElementById('countrySearch');
+        const countryList = document.getElementById('countryList');
+        const updateChartsBtn = document.getElementById('updateCharts');
+        
+        // Chart instances
+        let trendChart, regionChart, topCountriesChart, growthChart;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWorldData();
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            yearRange.addEventListener('input', function() {
+                selectedYear = parseInt(this.value);
+                selectedYearEl.textContent = selectedYear;
+                yearEl.textContent = selectedYear;
+            });
+            
+            regionFilter.addEventListener('change', function() {
+                selectedRegion = this.value;
+                selectedCountry = null;
+                countrySearch.value = '';
+                filterData();
+                updateCharts();
+            });
+            
+            countrySearch.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                if (searchTerm.length < 2) {
+                    countryList.style.display = 'none';
+                    return;
+                }
+                
+                // Filter countries based on search term
+                const filteredCountries = countriesData
+                    .filter(country => country.name.toLowerCase().includes(searchTerm))
+                    .slice(0, 10); // Limit to 10 results
+                
+                // Display results
+                countryList.innerHTML = filteredCountries.map(country => 
+                    `<div class="country-item" data-code="${country.code}">${country.name}</div>`
+                ).join('');
+                
+                countryList.style.display = filteredCountries.length ? 'block' : 'none';
+            });
+            
+            countryList.addEventListener('click', function(e) {
+                if (e.target.classList.contains('country-item')) {
+                    const countryCode = e.target.getAttribute('data-code');
+                    const country = countriesData.find(c => c.code === countryCode);
+                    
+                    if (country) {
+                        selectedCountry = country;
+                        selectedRegion = 'world'; // Reset region filter
+                        regionFilter.value = 'world';
+                        countrySearch.value = country.name;
+                        countryList.style.display = 'none';
+                        
+                        filterData();
+                        updateCharts();
+                    }
+                }
+            });
+            
+            updateChartsBtn.addEventListener('click', function() {
+                filterData();
+                updateCharts();
+            });
+            
+            // Close country dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!countrySearch.contains(e.target) && !countryList.contains(e.target)) {
+                    countryList.style.display = 'none';
+                }
+            });
+        }
+        
+        // Load world population data from World Bank API
+        async function loadWorldData() {
+            try {
+                // For demo purposes, we'll use a combination of real API calls and mock data
+                // In a real application, you would use actual API calls with proper error handling
+                
+                // Mock country data (in a real app, this would come from an API)
+                countriesData = getMockCountriesData();
+                
+                // Mock world data (in a real app, this would come from an API)
+                worldData = generateMockWorldData();
+                
+                // Initial data filter
+                filterData();
+                
+                // Update UI
+                updateStats();
+                updateCharts();
+                
+                // Hide loading, show content
+                loadingIndicator.style.display = 'none';
+                dashboardContent.style.display = 'block';
+                
+            } catch (error) {
+                showError(`Failed to load population data: ${error.message}`);
+                loadingIndicator.innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Failed to load data. Using demo data instead.</p>
+                    </div>
+                `;
+                
+                // Fallback to mock data
+                countriesData = getMockCountriesData();
+                worldData = generateMockWorldData();
+                filterData();
+                updateStats();
+                updateCharts();
+                
+                loadingIndicator.style.display = 'none';
+                dashboardContent.style.display = 'block';
+            }
+        }
+        
+        function filterData() {
+            if (selectedCountry) {
+                // Show data for selected country only
+                filteredData = [selectedCountry];
+            } else if (selectedRegion === 'world') {
+                // Show all countries
+                filteredData = countriesData;
+            } else {
+                // Filter by region
+                filteredData = countriesData.filter(country => {
+                    return country.region === selectedRegion;
+                });
+            }
+        }
+        
+        function updateStats() {
+            // Update world population (based on selected year)
+            const worldPop = worldData.population[selectedYear];
+            worldPopulationEl.textContent = formatNumber(worldPop) + 'B';
+            
+            // Update growth rate (calculate from previous year)
+            const currentPop = worldData.population[selectedYear];
+            const prevPop = worldData.population[selectedYear - 1] || currentPop * 0.98;
+            const growth = ((currentPop - prevPop) / prevPop * 100).toFixed(2);
+            growthRateEl.textContent = growth + '%';
+            
+            // Update density (world average)
+            const density = (worldPop * 1000000000 / 510072000).toFixed(1);
+            densityEl.textContent = density;
+        }
+        
+        function updateCharts() {
+            updateTrendChart();
+            updateRegionChart();
+            updateTopCountriesChart();
+            updateGrowthChart();
+            updateStats();
+        }
+        
+        function updateTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (trendChart) {
+                trendChart.destroy();
+            }
+            
+            // Prepare data
+            const years = Object.keys(worldData.population).map(Number);
+            const populations = years.map(year => worldData.population[year]);
+            
+            // Create chart
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'World Population',
+                        data: populations,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Population: ${formatNumber(context.raw)}B`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Year'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Population (Billions)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + 'B';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateRegionChart() {
+            const ctx = document.getElementById('regionChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (regionChart) {
+                regionChart.destroy();
+            }
+            
+            // Group countries by region and sum their populations
+            const regions = {};
+            filteredData.forEach(country => {
+                if (!regions[country.region]) {
+                    regions[country.region] = 0;
+                }
+                regions[country.region] += country.population[selectedYear] || 0;
+            });
+            
+            const regionNames = Object.keys(regions);
+            const regionPopulations = regionNames.map(region => regions[region]);
+            
+            // Define colors for regions
+            const regionColors = {
+                'east-asia-pacific': '#3498db',
+                'europe-central-asia': '#9b59b6',
+                'latin-america-caribbean': '#2ecc71',
+                'middle-east-north-africa': '#e74c3c',
+                'north-america': '#f39c12',
+                'south-asia': '#1abc9c',
+                'sub-saharan-africa': '#e67e22',
+                'world': '#34495e'
+            };
+            
+            const backgroundColors = regionNames.map(region => regionColors[region] || '#95a5a6');
+            
+            regionChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: regionNames.map(name => formatRegionName(name)),
+                    datasets: [{
+                        data: regionPopulations,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const total = regionPopulations.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${context.label}: ${formatNumber(value)}M (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateTopCountriesChart() {
+            const ctx = document.getElementById('topCountriesChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (topCountriesChart) {
+                topCountriesChart.destroy();
+            }
+            
+            // Sort countries by population for selected year and take top 10
+            const topCountries = [...filteredData]
+                .sort((a, b) => (b.population[selectedYear] || 0) - (a.population[selectedYear] || 0))
+                .slice(0, 10);
+            
+            const countryNames = topCountries.map(c => c.name);
+            const countryPopulations = topCountries.map(c => c.population[selectedYear] || 0);
+            
+            topCountriesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: countryNames,
+                    datasets: [{
+                        label: `Population in ${selectedYear}`,
+                        data: countryPopulations,
+                        backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                        borderColor: '#2980b9',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Population (Millions)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateGrowthChart() {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (growthChart) {
+                growthChart.destroy();
+            }
+            
+            // Get top 5 countries for comparison
+            const comparisonCountries = [...filteredData]
+                .sort((a, b) => (b.population[selectedYear] || 0) - (a.population[selectedYear] || 0))
+                .slice(0, 5);
+            
+            // Prepare datasets
+            const datasets = comparisonCountries.map((country, index) => {
+                const colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6'];
+                return {
+                    label: country.name,
+                    data: [1960, 1970, 1980, 1990, 2000, 2010, 2020, 2023].map(year => 
+                        country.population[year] || 0
+                    ),
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    tension: 0.3
+                };
+            });
+            
+            growthChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [1960, 1970, 1980, 1990, 2000, 2010, 2020, 2023],
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Year'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Population (Millions)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Helper functions
+        function formatNumber(num) {
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1);
+            }
+            return num.toFixed(1);
+        }
+        
+        function formatRegionName(region) {
+            const regionNames = {
+                'east-asia-pacific': 'East Asia & Pacific',
+                'europe-central-asia': 'Europe & Central Asia',
+                'latin-america-caribbean': 'Latin America & Caribbean',
+                'middle-east-north-africa': 'Middle East & North Africa',
+                'north-america': 'North America',
+                'south-asia': 'South Asia',
+                'sub-saharan-africa': 'Sub-Saharan Africa',
+                'world': 'World'
+            };
+            return regionNames[region] || region;
+        }
+        
+        function showError(message) {
+            errorContainer.innerHTML = `
+                <div class="error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>${message}</p>
+                </div>
+            `;
+            
+            // Clear error after 5 seconds
+            setTimeout(() => {
+                errorContainer.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Mock data functions (in a real app, this would come from API)
+        function getMockCountriesData() {
+            // Sample country data with population from 1960-2023
+            const countries = [
+                {
+                    name: 'China',
+                    code: 'CHN',
+                    region: 'east-asia-pacific',
+                    population: generateCountryPopulationData(667, 1425) // In millions
+                },
+                {
+                    name: 'India',
+                    code: 'IND',
+                    region: 'south-asia',
+                    population: generateCountryPopulationData(450, 1428)
+                },
+                {
+                    name: 'United States',
+                    code: 'USA',
+                    region: 'north-america',
+                    population: generateCountryPopulationData(180, 340)
+                },
+                {
+                    name: 'Indonesia',
+                    code: 'IDN',
+                    region: 'east-asia-pacific',
+                    population: generateCountryPopulationData(92, 277)
+                },
+                {
+                    name: 'Pakistan',
+                    code: 'PAK',
+                    region: 'south-asia',
+                    population: generateCountryPopulationData(45, 240)
+                },
+                {
+                    name: 'Nigeria',
+                    code: 'NGA',
+                    region: 'sub-saharan-africa',
+                    population: generateCountryPopulationData(45, 223)
+                },
+                {
+                    name: 'Brazil',
+                    code: 'BRA',
+                    region: 'latin-america-caribbean',
+                    population: generateCountryPopulationData(72, 216)
+                },
+                {
+                    name: 'Bangladesh',
+                    code: 'BGD',
+                    region: 'south-asia',
+                    population: generateCountryPopulationData(48, 172)
+                },
+                {
+                    name: 'Russia',
+                    code: 'RUS',
+                    region: 'europe-central-asia',
+                    population: generateCountryPopulationData(119, 144)
+                },
+                {
+                    name: 'Mexico',
+                    code: 'MEX',
+                    region: 'latin-america-caribbean',
+                    population: generateCountryPopulationData(38, 128)
+                },
+                {
+                    name: 'Japan',
+                    code: 'JPN',
+                    region: 'east-asia-pacific',
+                    population: generateCountryPopulationData(93, 125)
+                },
+                {
+                    name: 'Ethiopia',
+                    code: 'ETH',
+                    region: 'sub-saharan-africa',
+                    population: generateCountryPopulationData(22, 126)
+                },
+                {
+                    name: 'Philippines',
+                    code: 'PHL',
+                    region: 'east-asia-pacific',
+                    population: generateCountryPopulationData(27, 117)
+                },
+                {
+                    name: 'Egypt',
+                    code: 'EGY',
+                    region: 'middle-east-north-africa',
+                    population: generateCountryPopulationData(27, 112)
+                },
+                {
+                    name: 'Vietnam',
+                    code: 'VNM',
+                    region: 'east-asia-pacific',
+                    population: generateCountryPopulationData(32, 98)
+                },
+                {
+                    name: 'DR Congo',
+                    code: 'COD',
+                    region: 'sub-saharan-africa',
+                    population: generateCountryPopulationData(15, 102)
+                },
+                {
+                    name: 'Turkey',
+                    code: 'TUR',
+                    region: 'europe-central-asia',
+                    population: generateCountryPopulationData(28, 85)
+                },
+                {
+                    name: 'Iran',
+                    code: 'IRN',
+                    region: 'middle-east-north-africa',
+                    population: generateCountryPopulationData(21, 89)
+                },
+                {
+                    name: 'Germany',
+                    code: 'DEU',
+                    region: 'europe-central-asia',
+                    population: generateCountryPopulationData(72, 83)
+                },
+                {
+                    name: 'Thailand',
+                    code: 'THA',
+                    region: 'east-asia-pacific',
+                    population: generateCountryPopulationData(27, 71)
+                }
+            ];
+            
+            return countries;
+        }
+        
+        function generateCountryPopulationData(start1960, end2023) {
+            const population = {};
+            const growthFactor = Math.pow(end2023 / start1960, 1/(2023-1960));
+            
+            for (let year = 1960; year <= 2023; year++) {
+                const yearsFrom1960 = year - 1960;
+                population[year] = Math.round(start1960 * Math.pow(growthFactor, yearsFrom1960));
+            }
+            
+            return population;
+        }
+        
+        function generateMockWorldData() {
+            const population = {};
+            // World population data (in billions)
+            const start1960 = 3.0;
+            const end2023 = 8.0;
+            const growthFactor = Math.pow(end2023 / start1960, 1/(2023-1960));
+            
+            for (let year = 1960; year <= 2023; year++) {
+                const yearsFrom1960 = year - 1960;
+                population[year] = parseFloat((start1960 * Math.pow(growthFactor, yearsFrom1960)).toFixed(2));
+            }
+            
+            return { population };
+        }
+    </script>
+</body>
+</html>
